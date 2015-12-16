@@ -91,8 +91,8 @@ def main():
 
 #    print_idf(index)
     if doit:
-        #results = evaluate_filters(queries, index, topN = TOPN)
-        print(count_execs(queries, qiini = 1, fiini = 0, qiend = 1, fiend = 20))
+        results = evaluate_filters(queries, index, topN = TOPN)
+        #print(count_execs(queries, qiini = None, fiini = None, qiend = 's', fiend = None))
 
         save_results(results, fresultname)
         print('Docs lidos:', len(index.doc))
@@ -416,7 +416,14 @@ def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None)
 '''
     nterm_count = dict()
 
-    queries = queries[qiini:qiend+1]
+    try:
+        queries = queries[qiini:qiend+1]
+    except TypeError as error:
+        if type(qiend) == type(None):
+            queries = queries[qiini:]
+        else:
+            raise(error)
+
     for query in queries:
         try:
             nterm_count[query.n_term] += 1
