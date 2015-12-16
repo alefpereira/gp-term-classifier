@@ -13,7 +13,13 @@ import os
 
 import lepref_util
 
+import copy
+
+from multiprocessing import Pool
+
 DEBUG = False
+
+CORES = 1
 
 TOPN = 40
 
@@ -85,11 +91,8 @@ def main():
 
 #    print_idf(index)
     if doit:
-        start_time = time.clock()
-        print(time.strftime("Start at: %a, %d %b %Y %H:%M:%S", time.localtime()))
-        results = evaluate_filters(queries, index, topN = TOPN)
-        print(time.strftime("Ends at: %a, %d %b %Y %H:%M:%S", time.localtime()))
-        print("--- %s seconds ---" % (time.clock() - start_time))
+        #results = evaluate_filters(queries, index, topN = TOPN)
+        print(count_execs(queries, qiini = 1, fiini = 0, qiend = 1, fiend = 20))
 
         save_results(results, fresultname)
         print('Docs lidos:', len(index.doc))
@@ -321,9 +324,14 @@ def evaluate(queries, index, topN = TOPN):
     return acumulador_ndcg/len(queries)
 
 def evaluate_filters(queries, index, topN = TOPN):
+    start_time = time.time()
+    print(time.strftime("Start at: %a, %d %b %Y %H:%M:%S", time.localtime()))
+
     products = {}
     results = []
-    for iq, query in enumerate(queries):
+    countdict, totalqueries = count_execs(queries)
+    queriesdone = 0
+    for qi, query in enumerate(queries):
         termslist = [term.word for term in query.term]
 
         #create filterpergumation
@@ -332,15 +340,39 @@ def evaluate_filters(queries, index, topN = TOPN):
             products[len(termslist)] = list(itertools.product(filters, repeat = len(termslist)))
             productslist = products[len(termslist)]
 
-        productsresults = []
-        for ic, filterproduct in enumerate(productslist):
+        n_jobs = len(productslist)
+        done = 0
 
-            #Process tracker
-            #(56%) 1541 of 5125 queries. Query 650 processing (34%) 14 of 59 filters...
-            processq = (iq+1)/len(queries)*100
-            processf = (ic+1)/len(productslist)*100
-            print('(%2.2f%%) %d of %d queries. Query %d processing (%2.2f%%) %d of %d filters... [Max Time = %f]'
-                % (processq, iq+1, len(queries), query.queryid, processf, ic+1, len(productslist), maxtime), end = '\r')
+#        pool = Pool(CORES)
+
+#        args = [[copy.copy(query), index, filterproduct, copy.copy(termslist), topN] for filterproduct in productslist]
+#        jobs = pool.starmap_async(evaluate_function, args)
+
+#        #(56%) 1541 of 5125 queries. Query 650 processing (34%) 14 of 59 filters
+#        while True:
+#            if not jobs.ready():
+#                done = (n_jobs - jobs._number_left)
+#                print('Execs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
+#                  queriesdone + done, totalqueries, (queriesdone + done)/totalqueries * 100,
+#                  (qi+1), len(queries), (qi+1)/len(queries)  * 100,
+#                  done, n_jobs, done/n_jobs * 100
+#                  , (queriesdone + done) / (time.time() - start_time)), 
+#                  end = '\r')
+#                jobs.wait(1)
+#            else:
+#                done = (n_jobs - jobs._number_left)
+#                print('Execs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
+#                  queriesdone + done, totalqueries, (queriesdone + done)/totalqueries * 100,
+#                  (qi+1), len(queries), (qi+1)/len(queries) * 100,
+#                  done, n_jobs, done/n_jobs * 100
+#                  , (queriesdone + done) / (time.time() - start_time)), 
+#                  end = '\r')
+#                queriesdone += done
+#                break
+#        productsresults = jobs.get()
+
+        productsresults = []
+        for fi, filterproduct in enumerate(productslist):
 
             #Evalue query
             rank = index.filters_query(' '.join(termslist), filterproduct)
@@ -348,15 +380,88 @@ def evaluate_filters(queries, index, topN = TOPN):
             ndcg_q = lepref_util.ndcg_unico(vetor_ganho_consulta, query.idcg, topN, chave = lambda e: e)
             query.mean_ndcg_atual = lepref_util.ndcg_medio_unico(ndcg_q)
 
+            queriesdone += 1
+            #Process tracker
+            #(56%) 1541 of 5125 queries. Query 650 processing (34%) 14 of 59 filters...
+            print('\rExecs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
+                  queriesdone + done, totalqueries, (queriesdone + done)/totalqueries * 100,
+                  (qi+1), len(queries), (qi+1)/len(queries)  * 100,
+                  fi+1, n_jobs, (fi+1)/n_jobs * 100
+                  , (queriesdone) / (time.time() - start_time)), 
+                  end = '')
             #Add result to products results
             
-            productsresults.append((filterproduct, query.mean_ndcg_atual))
+            productsresults.append((fi, query.mean_ndcg_atual))
 
         #Add query results to final results
         queryresult = (query.queryid, termslist, productsresults)
         results.append(queryresult)
     print('')
+    print(time.strftime("Ends at: %a, %d %b %Y %H:%M:%S", time.localtime()))
+    print("--- %s seconds ---" % (time.time() - start_time))
     return results
+
+def evaluate_function(query, index, filterproduct, termslist, topN = TOPN):
+    '''
+'''
+    rank = index.filters_query(' '.join(termslist), filterproduct)
+    vetor_ganho_consulta = obter_vetor_ganho(rank, query)
+    ndcg_q = lepref_util.ndcg_unico(vetor_ganho_consulta, query.idcg, topN, chave = lambda e: e)
+    mean_ndcg_atual = lepref_util.ndcg_medio_unico(ndcg_q)
+
+    return (filterproduct, mean_ndcg_atual)
+
+def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None):
+    '''
+'''
+    nterm_count = dict()
+
+    queries = queries[qiini:qiend+1]
+    for query in queries:
+        try:
+            nterm_count[query.n_term] += 1
+        except KeyError:
+            nterm_count[query.n_term] = 0
+            nterm_count[query.n_term] += 1
+
+    #cálculo do desconto para execuções parciais
+    discount = 0
+
+    if fiini:
+        if fiini < 0:
+            print('fiini não pode ser negatívo')
+            print('fiini:', fiini)
+            sys.exit()
+
+        query = queries[0]
+        if fiini >= 3**query.n_term:
+            print('O número inicial do filtro não pode ser maior ou igual a quantidade de filtros ')
+            print('fiini:', fiini)
+            print('Nfiltros:', 3**query.n_term)
+            sys.exit()
+        discount -= fiini
+
+    if fiend:
+        if fiend < 0:
+            print('fiend não pode ser negatívo')
+            print('fiend:', fiend)
+            sys.exit()
+
+        query = queries[-1]
+        res = 3**query.n_term - (fiend + 1)
+        if res < 0:
+            print('O índice final de filtros não pode ser maior ou igual a quantidade de filtros ')
+            print('fiend:', fiend)
+            print('Nfiltros:', 3**query.n_term)
+            sys.exit()
+        discount -= res
+
+    total = discount
+    for nterm in nterm_count:
+        #print('%d with %d terms' % (nterm_count[nterm], nterm) )
+        total += nterm_count[nterm] * (3**nterm)
+
+    return nterm_count, total
 
 if __name__ == "__main__":
     main()
