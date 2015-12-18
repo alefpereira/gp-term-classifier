@@ -40,9 +40,9 @@ else:
 
 #Filters
 filters = {
-    'fil' :  {'name': 'filter', 'query': False, 'posproc': True},
-    'and' :     {'name': 'and', 'query': True, 'posproc': True},
-    'def' : {'name': 'default(or)', 'query': True, 'posproc': False}
+    1 : {'name': 'default(or)', 'query': True, 'posproc': False},
+    2 :     {'name': 'and', 'query': True, 'posproc': True},
+    3 :  {'name': 'filter', 'query': False, 'posproc': True}
 }
 
 
@@ -327,7 +327,7 @@ def evaluate_filters(queries, index, topN = TOPN):
     start_time = time.time()
     print(time.strftime("Start at: %a, %d %b %Y %H:%M:%S", time.localtime()))
 
-    products = {}
+#    products = {}
     results = []
     countdict, totalqueries = count_execs(queries)
     queriesdone = 0
@@ -335,12 +335,14 @@ def evaluate_filters(queries, index, topN = TOPN):
         termslist = [term.word for term in query.term]
 
         #create filterpergumation
-        productslist = products.get(len(termslist))
-        if (productslist == None):
-            products[len(termslist)] = list(itertools.product(filters, repeat = len(termslist)))
-            productslist = products[len(termslist)]
+#        productslist = products.get(len(termslist))
+#        if (productslist == None):
+#            #products[len(termslist)] = list(itertools.product(filters, repeat = len(termslist)))
+#            products[len(termslist)] = itertools.product(filters.keys(), repeat = len(termslist))
+#            productslist = products[len(termslist)]
 
-        n_jobs = len(productslist)
+        #n_jobs = len(productslist)
+        n_jobs = len(filters) ** len(termslist)
         done = 0
 
 #        pool = Pool(CORES)
@@ -372,7 +374,7 @@ def evaluate_filters(queries, index, topN = TOPN):
 #        productsresults = jobs.get()
 
         productsresults = []
-        for fi, filterproduct in enumerate(productslist):
+        for fi, filterproduct in enumerate(itertools.product(filters.keys(), repeat = len(termslist))):
 
             #Evalue query
             rank = index.filters_query(' '.join(termslist), filterproduct)
@@ -396,6 +398,7 @@ def evaluate_filters(queries, index, topN = TOPN):
         #Add query results to final results
         queryresult = (query.queryid, termslist, productsresults)
         results.append(queryresult)
+    print('RESULTS',len(results))
     print('')
     print(time.strftime("Ends at: %a, %d %b %Y %H:%M:%S", time.localtime()))
     print("--- %s seconds ---" % (time.time() - start_time))
