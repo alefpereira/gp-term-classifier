@@ -91,8 +91,8 @@ def main():
 
 #    print_idf(index)
     if doit:
-        print(count_execs(queries, qiini = 1, fiini = 0, qiend = 1, fiend = 1))
-        results = evaluate_filters(queries, index, topN = TOPN, qiini = 1, fiini = 0, qiend = 1, fiend = 1)
+        print(count_execs(queries, qiini = 1, fiini = 0, qiend = 1, fiend = 0))
+        results = evaluate_filters(queries, index, topN = TOPN, qiini = 1, fiini = 0, qiend = 1, fiend = 0)
 
         save_results(results, fresultname)
         print('Docs lidos:', len(index.doc))
@@ -363,7 +363,7 @@ def evaluate_filters(queries, index, topN = TOPN, qiini = None, fiini = None, qi
                 sys.exit()
             filteriterator = itertools.islice(filteriterator, fiini, n_jobs)
 
-        if qi == len(queries)-1 and fiend:
+        if qi == len(queries)-1 and fiend != None:
             if fiend < 0:
                 print('fiend não pode ser negativo')
                 print('fiend:', fiend)
@@ -452,7 +452,7 @@ def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None)
             sys.exit()
         discount -= fiini
 
-    if fiend:
+    if fiend != None:
         if fiend < 0:
             print('fiend não pode ser negativo')
             print('fiend:', fiend)
