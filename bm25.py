@@ -23,6 +23,8 @@ CORES = 1
 
 TOPN = 40
 
+EXECSTHRESHOLD = 50
+
 maxtime = 0.0
 
 if len(sys.argv) != 4:
@@ -30,13 +32,13 @@ if len(sys.argv) != 4:
     print('Uso: python3 bm25.py argv[1]')
     print('argv[1]: arquivo da base de dados')
     print('argv[2]: nome do arquivo onde serão salvos os dados')
-    print('argv[3]: nome do arquivo onde serão salvos os resultados')
+    print('argv[3]: nome do diretório onde serão salvos os arquivos de resultados')
 #    print('argv[x]:')
     sys.exit(-1)
 else:
     dbname = sys.argv[1]
     fdataname = sys.argv[2]
-    fresultname = sys.argv[3]
+    dirresultname = sys.argv[3]
 
 #Filters
 filters = {
@@ -72,8 +74,8 @@ def main():
 #    print('MeanNDCG: ', evaluate(queries, index, topN = TOPN))
 ##Filters permutations
     doit = False
-    if os.path.exists(fresultname):
-        print("Arquivo ", fresultname, " de resultado encontrado!", sep = '')
+    if os.path.exists(dirresultname):
+        print("Diretório ", dirresultname, " de resultado encontrado!", sep = '')
 
         while (True):
             inputstring = input('Deseja calcular novamente?(N,y): ')
@@ -91,10 +93,12 @@ def main():
 
 #    print_idf(index)
     if doit:
-        print(count_execs(queries, qiini = 1, fiini = 0, qiend = 1, fiend = 0))
-        results = evaluate_filters(queries, index, topN = TOPN, qiini = 1, fiini = 0, qiend = 1, fiend = 0)
+        print(count_execs(queries, qiini = 0, fiini = 10, qiend = 2, fiend = 2))
+        #results = evaluate_filters(queries, index, topN = TOPN, qiini = 1, fiini = 0, qiend = 2, fiend = 8)
+        #results = evaluate_filters(queries, index, topN = TOPN)
+        evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = 0, fiini = 10, qiend = 2, fiend = 2)
 
-        save_results(results, fresultname)
+        #save_results(results, dirresultname)
         print('Docs lidos:', len(index.doc))
         print('AVGDL:', index.avgdl)
         print('Vocabulary Length:', len(index))
@@ -275,11 +279,18 @@ def load_data(fdataname):
             data = pickle.load(data_file)
     return data['queries'], data['index']
 
-def save_results(results, fresultname):
+def save_results(results, dirresultname, posqiini, posfiini, posqiend, posfiend, seq):
     '''
 '''
-    result_buff = dict(results = results)
-    with open(fresultname, "wb") as result_file:
+    statusdata = dict(
+      posqiini = posqiini,
+      posfiini = posfiini,
+      posqiend = posqiend,
+      posfiend = posfiend,
+      seq = seq)
+    result_buff = dict(results = results, status = statusdata)
+
+    with open(dirresultname + os.sep + str(seq) + '.result', "wb") as result_file:
         pickle.dump(result_buff, result_file)
 
 def load_results(fresultname):
@@ -287,7 +298,7 @@ def load_results(fresultname):
 '''
     with open(fresultname, "rb") as result_file:
             data = pickle.load(result_file)
-    return data['results']
+    return data
 
 def obter_vetor_ganho(rank, query):
     '''Description
@@ -323,7 +334,7 @@ def evaluate(queries, index, topN = TOPN):
 
     return acumulador_ndcg/len(queries)
 
-def evaluate_filters(queries, index, topN = TOPN, qiini = None, fiini = None, qiend = None, fiend = None):
+def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, fiini = None, qiend = None, fiend = None):
     start_time = time.time()
     print(time.strftime("Start at: %a, %d %b %Y %H:%M:%S", time.localtime()))
 
@@ -331,21 +342,34 @@ def evaluate_filters(queries, index, topN = TOPN, qiini = None, fiini = None, qi
     results = []
     countdict, totalqueries = count_execs(queries, qiini, fiini, qiend, fiend)
     queriesdone = 0
+    seq = 1
 
     try:
         queries = queries[qiini:qiend+1]
+
+        #Configura posqiini para salvamento de relatório posteriormente
+        if type(qiini) == int:
+            posqiini = qiini
+        elif type(qiini) == None:
+            qiini = 0
+            posqiini = 0
+
+    #exceção necessária para validar a soma em queries = queries[qiini:qiend+1]
     except TypeError as error:
         if type(qiend) == type(None):
             queries = queries[qiini:]
         else:
             raise(error)
+    if type(fiini) == None:
+        posfiini = 0
+    elif type(fiini) == int:
+        posfiini = fiini
 
     for qi, query in enumerate(queries):
         termslist = [term.word for term in query.term]
 
         #n_jobs = len(productslist)
         n_jobs = len(filters) ** len(termslist)
-        done = 0
 
         productsresults = []
 
@@ -388,7 +412,7 @@ def evaluate_filters(queries, index, topN = TOPN, qiini = None, fiini = None, qi
             #Process tracker
             #(56%) 1541 of 5125 queries. Query 650 processing (34%) 14 of 59 filters...
             print('\rExecs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
-                  queriesdone + done, totalqueries, (queriesdone + done)/totalqueries * 100,
+                  queriesdone, totalqueries, (queriesdone)/totalqueries * 100,
                   (qi+1), len(queries), (qi+1)/len(queries)  * 100,
                   fi+1, n_jobs, (fi+1)/n_jobs * 100
                   , (queriesdone) / (time.time() - start_time)), 
@@ -396,14 +420,45 @@ def evaluate_filters(queries, index, topN = TOPN, qiini = None, fiini = None, qi
             #Add result to products results
             
             productsresults.append((fi, query.mean_ndcg_atual))
+            # Implementar salvar arquivo
+            if queriesdone%EXECSTHRESHOLD == 0:
+                queryresult = (query.queryid, termslist, productsresults)
+                results.append(queryresult)
+                posqiend = qi
+                posfiend = fi
+                save_results(results, dirresultname, posqiini, posfiini, posqiend, posfiend, seq)
 
-        #Add query results to final results
-        queryresult = (query.queryid, termslist, productsresults)
-        results.append(queryresult)
+                #Configura nova rodada de armazenamento
+                seq += 1
+                if fi+1 == n_jobs:
+                    posqiini = qiini + qi + 1       # next query 
+                    posfiini = 0
+                else:
+                    posqiini = qiini + qi           # same query next filter
+                    if qi == 0: # soma o inicio do intervalo na posição
+                        if fiini == None:
+                            posfiini = fi + 1
+                        else:
+                            posfiini = fiini + fi + 1
+                    else:
+                        posfiini = fi + 1
+                del(productsresults)
+                del(results)
+                productsresults = []
+                results = []
+
+        if productsresults:
+            #Add query results to final results
+            queryresult = (query.queryid, termslist, productsresults)
+            results.append(queryresult)
+    if results:
+        posqiend = qi
+        posfiend = fi
+        save_results(results, dirresultname, posqiini, posfiini, posqiend, posfiend, seq)
+
     print('')
     print(time.strftime("Ends at: %a, %d %b %Y %H:%M:%S", time.localtime()))
     print("--- %s seconds ---" % (time.time() - start_time))
-    return results
 
 def evaluate_function(query, index, filterproduct, termslist, topN = TOPN):
     '''
