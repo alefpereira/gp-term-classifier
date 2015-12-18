@@ -15,6 +15,8 @@ import lepref_util
 
 import copy
 
+import json
+
 from multiprocessing import Pool
 
 DEBUG = False
@@ -23,22 +25,39 @@ CORES = 1
 
 TOPN = 40
 
-EXECSTHRESHOLD = 50
+EXECSTHRESHOLD = 1000000
 
 maxtime = 0.0
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 5:
     print('Python 2015')
     print('Uso: python3 bm25.py argv[1]')
     print('argv[1]: arquivo da base de dados')
     print('argv[2]: nome do arquivo onde serão salvos os dados')
     print('argv[3]: nome do diretório onde serão salvos os arquivos de resultados')
+    print('argv[4]: nome do arquivo de range')
 #    print('argv[x]:')
     sys.exit(-1)
 else:
     dbname = sys.argv[1]
     fdataname = sys.argv[2]
     dirresultname = sys.argv[3]
+    rangefname = sys.argv[4]
+    try:
+        with open(rangefname, 'r') as rangefile:
+            rangestring=rangefile.read()
+    except Exception as error:
+        raise error
+
+    rangedict = json.loads(rangestring)
+    qiini = rangedict['qiini']
+    fiini = rangedict['fiini']
+    qiend = rangedict['qiend']
+    fiend = rangedict['fiend']
+    try:
+        EXECSTHRESHOLD = rangedict['bkplen']
+    except KeyError:
+        print('Using bkplen default =', EXECSTHRESHOLD)
 
 #Filters
 filters = {
@@ -93,10 +112,10 @@ def main():
 
 #    print_idf(index)
     if doit:
-        print(count_execs(queries, qiini = 0, fiini = 10, qiend = 2, fiend = 2))
+        print(count_execs(queries, qiini, fiini, qiend, fiend))
         #results = evaluate_filters(queries, index, topN = TOPN, qiini = 1, fiini = 0, qiend = 2, fiend = 8)
-        #results = evaluate_filters(queries, index, topN = TOPN)
-        evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = 0, fiini = 10, qiend = 2, fiend = 2)
+        evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = qiini, fiini = fiini, qiend = qiend, fiend = fiend)
+        #evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = 0, fiini = 0, qiend = 3, fiend = None)
 
         #save_results(results, dirresultname)
         print('Docs lidos:', len(index.doc))
@@ -290,6 +309,9 @@ def save_results(results, dirresultname, posqiini, posfiini, posqiend, posfiend,
       seq = seq)
     result_buff = dict(results = results, status = statusdata)
 
+    if not os.path.exists(dirresultname):
+        os.makedirs(dirresultname)
+
     with open(dirresultname + os.sep + str(seq) + '.result', "wb") as result_file:
         pickle.dump(result_buff, result_file)
 
@@ -346,23 +368,22 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
 
     try:
         queries = queries[qiini:qiend+1]
-
-        #Configura posqiini para salvamento de relatório posteriormente
-        if type(qiini) == int:
-            posqiini = qiini
-        elif type(qiini) == None:
-            qiini = 0
-            posqiini = 0
-
     #exceção necessária para validar a soma em queries = queries[qiini:qiend+1]
     except TypeError as error:
         if type(qiend) == type(None):
             queries = queries[qiini:]
         else:
             raise(error)
-    if type(fiini) == None:
-        posfiini = 0
-    elif type(fiini) == int:
+
+    #Configura posqiini para salvamento de relatório posteriormente
+    posqiini = 0
+    if type(qiini) == int:
+        posqiini = qiini
+    elif qiini == None:
+        qiini = 0
+
+    posfiini = 0
+    if type(fiini) == int:
         posfiini = fiini
 
     for qi, query in enumerate(queries):
@@ -425,7 +446,10 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
                 queryresult = (query.queryid, termslist, productsresults)
                 results.append(queryresult)
                 posqiend = qi
-                posfiend = fi
+                if qi == 0:
+                    posfiend = fiini + fi
+                else:
+                    posfiend = fi
                 save_results(results, dirresultname, posqiini, posfiini, posqiend, posfiend, seq)
 
                 #Configura nova rodada de armazenamento
