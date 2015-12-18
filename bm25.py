@@ -334,44 +334,9 @@ def evaluate_filters(queries, index, topN = TOPN):
     for qi, query in enumerate(queries):
         termslist = [term.word for term in query.term]
 
-        #create filterpergumation
-#        productslist = products.get(len(termslist))
-#        if (productslist == None):
-#            #products[len(termslist)] = list(itertools.product(filters, repeat = len(termslist)))
-#            products[len(termslist)] = itertools.product(filters.keys(), repeat = len(termslist))
-#            productslist = products[len(termslist)]
-
         #n_jobs = len(productslist)
         n_jobs = len(filters) ** len(termslist)
         done = 0
-
-#        pool = Pool(CORES)
-
-#        args = [[copy.copy(query), index, filterproduct, copy.copy(termslist), topN] for filterproduct in productslist]
-#        jobs = pool.starmap_async(evaluate_function, args)
-
-#        #(56%) 1541 of 5125 queries. Query 650 processing (34%) 14 of 59 filters
-#        while True:
-#            if not jobs.ready():
-#                done = (n_jobs - jobs._number_left)
-#                print('Execs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
-#                  queriesdone + done, totalqueries, (queriesdone + done)/totalqueries * 100,
-#                  (qi+1), len(queries), (qi+1)/len(queries)  * 100,
-#                  done, n_jobs, done/n_jobs * 100
-#                  , (queriesdone + done) / (time.time() - start_time)), 
-#                  end = '\r')
-#                jobs.wait(1)
-#            else:
-#                done = (n_jobs - jobs._number_left)
-#                print('Execs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
-#                  queriesdone + done, totalqueries, (queriesdone + done)/totalqueries * 100,
-#                  (qi+1), len(queries), (qi+1)/len(queries) * 100,
-#                  done, n_jobs, done/n_jobs * 100
-#                  , (queriesdone + done) / (time.time() - start_time)), 
-#                  end = '\r')
-#                queriesdone += done
-#                break
-#        productsresults = jobs.get()
 
         productsresults = []
         for fi, filterproduct in enumerate(itertools.product(filters.keys(), repeat = len(termslist))):
@@ -398,7 +363,6 @@ def evaluate_filters(queries, index, topN = TOPN):
         #Add query results to final results
         queryresult = (query.queryid, termslist, productsresults)
         results.append(queryresult)
-    print('RESULTS',len(results))
     print('')
     print(time.strftime("Ends at: %a, %d %b %Y %H:%M:%S", time.localtime()))
     print("--- %s seconds ---" % (time.time() - start_time))
