@@ -91,8 +91,8 @@ def main():
 
 #    print_idf(index)
     if doit:
-        results = evaluate_filters(queries, index, topN = TOPN)
-        #print(count_execs(queries, qiini = None, fiini = None, qiend = 's', fiend = None))
+        print(count_execs(queries, qiini = 1, fiini = 0, qiend = 1, fiend = 1))
+        results = evaluate_filters(queries, index, topN = TOPN, qiini = 1, fiini = 0, qiend = 1, fiend = 1)
 
         save_results(results, fresultname)
         print('Docs lidos:', len(index.doc))
@@ -323,14 +323,23 @@ def evaluate(queries, index, topN = TOPN):
 
     return acumulador_ndcg/len(queries)
 
-def evaluate_filters(queries, index, topN = TOPN):
+def evaluate_filters(queries, index, topN = TOPN, qiini = None, fiini = None, qiend = None, fiend = None):
     start_time = time.time()
     print(time.strftime("Start at: %a, %d %b %Y %H:%M:%S", time.localtime()))
 
 #    products = {}
     results = []
-    countdict, totalqueries = count_execs(queries)
+    countdict, totalqueries = count_execs(queries, qiini, fiini, qiend, fiend)
     queriesdone = 0
+
+    try:
+        queries = queries[qiini:qiend+1]
+    except TypeError as error:
+        if type(qiend) == type(None):
+            queries = queries[qiini:]
+        else:
+            raise(error)
+
     for qi, query in enumerate(queries):
         termslist = [term.word for term in query.term]
 
@@ -339,7 +348,35 @@ def evaluate_filters(queries, index, topN = TOPN):
         done = 0
 
         productsresults = []
-        for fi, filterproduct in enumerate(itertools.product(filters.keys(), repeat = len(termslist))):
+
+        filteriterator = itertools.product(filters.keys(), repeat = len(termslist))
+        if qi == 0 and fiini:
+            if fiini < 0:
+                print('fiini não pode ser negativo')
+                print('fiini:', fiini)
+                sys.exit()
+
+            if fiini >= n_jobs:
+                print('O número inicial do filtro não pode ser maior ou igual a quantidade de filtros ')
+                print('fiini:', fiini)
+                print('Nfiltros:', n_jobs)
+                sys.exit()
+            filteriterator = itertools.islice(filteriterator, fiini, n_jobs)
+
+        if qi == len(queries)-1 and fiend:
+            if fiend < 0:
+                print('fiend não pode ser negativo')
+                print('fiend:', fiend)
+                sys.exit()
+
+            if fiend >= n_jobs:
+                print('O índice final de filtros não pode ser maior ou igual a quantidade de filtros ')
+                print('fiend:', fiend)
+                print('Nfiltros:', 3**query.n_term)
+                sys.exit()
+            filteriterator = itertools.islice(filteriterator, fiend+1)
+
+        for fi, filterproduct in enumerate(filteriterator):
 
             #Evalue query
             rank = index.filters_query(' '.join(termslist), filterproduct)
@@ -403,7 +440,7 @@ def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None)
 
     if fiini:
         if fiini < 0:
-            print('fiini não pode ser negatívo')
+            print('fiini não pode ser negativo')
             print('fiini:', fiini)
             sys.exit()
 
@@ -417,7 +454,7 @@ def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None)
 
     if fiend:
         if fiend < 0:
-            print('fiend não pode ser negatívo')
+            print('fiend não pode ser negativo')
             print('fiend:', fiend)
             sys.exit()
 
