@@ -112,7 +112,7 @@ def main():
 
 #    print_idf(index)
     if doit:
-        print(count_execs(queries, qiini, fiini, qiend, fiend))
+        #print(count_execs(queries, qiini, fiini, qiend, fiend))
         #results = evaluate_filters(queries, index, topN = TOPN, qiini = 1, fiini = 0, qiend = 2, fiend = 8)
         evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = qiini, fiini = fiini, qiend = qiend, fiend = fiend)
         #evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = 0, fiini = 0, qiend = 3, fiend = None)
@@ -358,12 +358,14 @@ def evaluate(queries, index, topN = TOPN):
 
 def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, fiini = None, qiend = None, fiend = None):
     start_time = time.time()
+    mini_time = start_time
     print(time.strftime("Start at: %a, %d %b %Y %H:%M:%S", time.localtime()))
 
 #    products = {}
     results = []
     countdict, totalqueries = count_execs(queries, qiini, fiini, qiend, fiend)
     queriesdone = 0
+    miniqueriesdone = 0
     seq = 1
 
     try:
@@ -430,14 +432,21 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
             query.mean_ndcg_atual = lepref_util.ndcg_medio_unico(ndcg_q)
 
             queriesdone += 1
+            miniqueriesdone += 1
             #Process tracker
             #(56%) 1541 of 5125 queries. Query 650 processing (34%) 14 of 59 filters...
-            print('\rExecs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
+            print('\rExecs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s (%.1fq/s)' % (
                   queriesdone, totalqueries, (queriesdone)/totalqueries * 100,
                   (qi+1), len(queries), (qi+1)/len(queries)  * 100,
-                  fi+1, n_jobs, (fi+1)/n_jobs * 100
-                  , (queriesdone) / (time.time() - start_time)), 
+                  fi+1, n_jobs, (fi+1)/n_jobs * 100,
+                  (queriesdone) / (time.time() - start_time),
+                  (miniqueriesdone) / (time.time() - mini_time)),
                   end = '')
+            #reset mini time
+            if time.time() - mini_time > 10:
+                mini_time = time.time()
+                miniqueriesdone = 0
+            
             #Add result to products results
             
             productsresults.append((fi, query.mean_ndcg_atual))
