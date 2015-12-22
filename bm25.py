@@ -443,7 +443,7 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
                   (miniqueriesdone) / (time.time() - mini_time)),
                   end = '')
             #reset mini time
-            if time.time() - mini_time > 10:
+            if time.time() - mini_time > 1:
                 mini_time = time.time()
                 miniqueriesdone = 0
             
