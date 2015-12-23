@@ -387,6 +387,8 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
     posfiini = 0
     if type(fiini) == int:
         posfiini = fiini
+    if fiini == None:
+        fiini = 0
 
     for qi, query in enumerate(queries):
         termslist = [term.word for term in query.term]
@@ -421,7 +423,18 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
                 print('fiend:', fiend)
                 print('Nfiltros:', 3**query.n_term)
                 sys.exit()
-            filteriterator = itertools.islice(filteriterator, fiend+1)
+            if qi == 0:
+                filteriterator = itertools.islice(filteriterator, fiend + 1 - fiini)
+            else:
+                filteriterator = itertools.islice(filteriterator, fiend + 1)
+#            try:
+#                filteriterator = itertools.islice(filteriterator, fiend + 1 - fiini)
+#            except ValueError as error:
+#                print('qi', qi + qiini)
+#                print('fiend', fiend)
+#                print('fiini', fiini)
+#                print('fiend + 1 - fiini', fiend + 1 - fiini)
+#                raise(error)
 
         for fi, filterproduct in enumerate(filteriterator):
 
@@ -435,30 +448,36 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
             miniqueriesdone += 1
             #Process tracker
             #(56%) 1541 of 5125 queries. Query 650 processing (34%) 14 of 59 filters...
-            print('\rExecs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s (%.1fq/s)' % (
+            #reset mini time
+            if time.time() - mini_time > 1:
+                print('\rExecs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s (%.1fq/s)' % (
                   queriesdone, totalqueries, (queriesdone)/totalqueries * 100,
                   (qi+1), len(queries), (qi+1)/len(queries)  * 100,
                   fi+1, n_jobs, (fi+1)/n_jobs * 100,
                   (queriesdone) / (time.time() - start_time),
                   (miniqueriesdone) / (time.time() - mini_time)),
                   end = '')
-            #reset mini time
-            if time.time() - mini_time > 1:
                 mini_time = time.time()
                 miniqueriesdone = 0
             
             #Add result to products results
-            
-            productsresults.append((fi, query.mean_ndcg_atual))
+#            if qi == 0:
+#                productsresults.append((fi + fiini, query.mean_ndcg_atual))
+#            else:
+#                productsresults.append((fi, query.mean_ndcg_atual))
+            productsresults.append((filterproduct, query.mean_ndcg_atual))
+
             # Implementar salvar arquivo
             if queriesdone%EXECSTHRESHOLD == 0:
                 queryresult = (query.queryid, termslist, productsresults)
                 results.append(queryresult)
-                posqiend = qi
+                posqiend = qi + qiini
                 if qi == 0:
                     posfiend = fiini + fi
                 else:
                     posfiend = fi
+
+                #Save results
                 save_results(results, dirresultname, posqiini, posfiini, posqiend, posfiend, seq)
 
                 #Configura nova rodada de armazenamento
@@ -485,11 +504,17 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
             queryresult = (query.queryid, termslist, productsresults)
             results.append(queryresult)
     if results:
-        posqiend = qi
-        posfiend = fi
+        posqiend = qi + qiini
+        posfiend = fi + fiini
         save_results(results, dirresultname, posqiini, posfiini, posqiend, posfiend, seq)
 
-    print('')
+    print('\rExecs: %d/%d (%2.2f%%) Query: %d/%d (%2.2f%%) Processing %d/%d (%2.2f%%) %.1fq/s' % (
+      queriesdone, totalqueries, (queriesdone)/totalqueries * 100,
+      (qi+1), len(queries), (qi+1)/len(queries)  * 100,
+      fi+1, n_jobs, (fi+1)/n_jobs * 100,
+      (queriesdone) / (time.time() - start_time))
+    )
+
     print(time.strftime("Ends at: %a, %d %b %Y %H:%M:%S", time.localtime()))
     print("--- %s seconds ---" % (time.time() - start_time))
 
