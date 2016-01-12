@@ -19,6 +19,8 @@ import json
 
 from multiprocessing import Pool
 
+from stopwords import stemedstopwords as stopwords
+
 DEBUG = False
 
 CORES = 1
@@ -26,6 +28,8 @@ CORES = 1
 TOPN = 40
 
 EXECSTHRESHOLD = 1000000
+
+NOSTOPWORDS = True
 
 maxtime = 0.0
 
@@ -58,6 +62,11 @@ else:
         EXECSTHRESHOLD = rangedict['bkplen']
     except KeyError:
         print('Using bkplen default =', EXECSTHRESHOLD)
+
+    try:
+        NOSTOPWORDS = rangedict['nostopwords']
+    except KeyError:
+        print('Using nostopwords default =', NOSTOPWORDS)
 
 #Filters
 filters = {
@@ -157,10 +166,10 @@ class Bm25Index (indexing.Index):
     def simple_query(self, query, topN = TOPN):
         '''
     '''
-        termlist = query.split()
+        termslist = query.split()
         acc_dict = {}
 
-        for term in termlist:
+        for term in termslist:
             if self.get(term):
 #                for doc in self[term].doclist:
 #                    if not acc_dict.get(doc.doc):
@@ -182,18 +191,18 @@ class Bm25Index (indexing.Index):
     def filters_query(self, query, termsfilters = None, topN = TOPN):
         '''
     '''
-        termlist = query.split()
+        termslist = query.split()
         if termsfilters:
-            if len(termlist) != len(termsfilters):
-                print('TermList:', termlist)
+            if len(termslist) != len(termsfilters):
+                print('TermsList:', termslist)
                 print('TermsFilters:', termsfilters)
                 raise(Exception("Número de parâmetros diferentes do número de termos"))
         else:
-            termsfilters = ['default']*len(termlist)
+            termsfilters = ['default']*len(termslist)
         #filter process
         querylist = []
         posproclist = []
-        for i, term in enumerate(termlist):
+        for i, term in enumerate(termslist):
 
             termfilter = termsfilters[i]
             if filters[termfilter]['query']:
@@ -272,8 +281,8 @@ def print_termdoc(queries):
             print(term.word)
         for doc in query.doc:
             print(doc.docid)
-            termlist = [term.word for term in doc.term]
-            print(termlist)
+            termslist = [term.word for term in doc.term]
+            print(termslist)
 
 #            doclist = [doc.docid for doc in query.doc]
 #            print(doclist)
@@ -391,7 +400,10 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
         fiini = 0
 
     for qi, query in enumerate(queries):
-        termslist = [term.word for term in query.term]
+        if NOSTOPWORDS:
+            termslist = remove_stopwords(query)
+        else:
+            termslist = [term.word for term in query.term]
 
         #n_jobs = len(productslist)
         n_jobs = len(filters) ** len(termslist)
@@ -421,7 +433,7 @@ def evaluate_filters(queries, index, dirresultname, topN = TOPN, qiini = None, f
             if fiend >= n_jobs:
                 print('O índice final de filtros não pode ser maior ou igual a quantidade de filtros ')
                 print('fiend:', fiend)
-                print('Nfiltros:', 3**query.n_term)
+                print('Nfiltros:', 3**len(termslist))
                 sys.exit()
             if qi == 0:
                 filteriterator = itertools.islice(filteriterator, fiend + 1 - fiini)
@@ -528,6 +540,10 @@ def evaluate_function(query, index, filterproduct, termslist, topN = TOPN):
 
     return (filterproduct, mean_ndcg_atual)
 
+def remove_stopwords(query):
+    termslist = [term.word for term in query.term if term.word not in stopwords]
+    return termslist
+
 def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None):
     '''
 '''
@@ -542,11 +558,16 @@ def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None)
             raise(error)
 
     for query in queries:
+        if NOSTOPWORDS:
+            termslist = remove_stopwords(query)
+        else:
+            termslist = [term.word for term in query.term]
+
         try:
-            nterm_count[query.n_term] += 1
+            nterm_count[len(termslist)] += 1
         except KeyError:
-            nterm_count[query.n_term] = 0
-            nterm_count[query.n_term] += 1
+            nterm_count[len(termslist)] = 0
+            nterm_count[len(termslist)] += 1
 
     #cálculo do desconto para execuções parciais
     discount = 0
@@ -558,10 +579,15 @@ def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None)
             sys.exit()
 
         query = queries[0]
-        if fiini >= 3**query.n_term:
+        if NOSTOPWORDS:
+            termslist = remove_stopwords(query)
+        else:
+            termslist = [term.word for term in query.term]
+
+        if fiini >= 3**len(termslist):
             print('O número inicial do filtro não pode ser maior ou igual a quantidade de filtros ')
             print('fiini:', fiini)
-            print('Nfiltros:', 3**query.n_term)
+            print('Nfiltros:', 3**len(termslist))
             sys.exit()
         discount -= fiini
 
@@ -572,11 +598,15 @@ def count_execs(queries, qiini = None, fiini = None, qiend = None, fiend = None)
             sys.exit()
 
         query = queries[-1]
-        res = 3**query.n_term - (fiend + 1)
+        if NOSTOPWORDS:
+            termslist = remove_stopwords(query)
+        else:
+            termslist = [term.word for term in query.term]
+        res = 3**len(termslist) - (fiend + 1)
         if res < 0:
             print('O índice final de filtros não pode ser maior ou igual a quantidade de filtros ')
             print('fiend:', fiend)
-            print('Nfiltros:', 3**query.n_term)
+            print('Nfiltros:', 3**len(termslist))
             sys.exit()
         discount -= res
 
