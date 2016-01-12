@@ -33,50 +33,53 @@ NOSTOPWORDS = True
 
 maxtime = 0.0
 
-if len(sys.argv) != 5:
-    print('Python 2015')
-    print('Uso: python3 bm25.py argv[1]')
-    print('argv[1]: arquivo da base de dados')
-    print('argv[2]: nome do arquivo onde serão salvos os dados')
-    print('argv[3]: nome do diretório onde serão salvos os arquivos de resultados')
-    print('argv[4]: nome do arquivo de range')
-#    print('argv[x]:')
-    sys.exit(-1)
-else:
-    dbname = sys.argv[1]
-    fdataname = sys.argv[2]
-    dirresultname = sys.argv[3]
-    rangefname = sys.argv[4]
-    try:
-        with open(rangefname, 'r') as rangefile:
-            rangestring=rangefile.read()
-    except Exception as error:
-        raise error
-
-    rangedict = json.loads(rangestring)
-    qiini = rangedict['qiini']
-    fiini = rangedict['fiini']
-    qiend = rangedict['qiend']
-    fiend = rangedict['fiend']
-    try:
-        EXECSTHRESHOLD = rangedict['bkplen']
-    except KeyError:
-        print('Using bkplen default =', EXECSTHRESHOLD)
-
-    try:
-        NOSTOPWORDS = rangedict['nostopwords']
-    except KeyError:
-        print('Using nostopwords default =', NOSTOPWORDS)
-
-#Filters
-filters = {
-    1 : {'name': 'default(or)', 'query': True, 'posproc': False},
-    2 :     {'name': 'and', 'query': True, 'posproc': True},
-    3 :  {'name': 'filter', 'query': False, 'posproc': True}
-}
-
-
 def main():
+
+    if len(sys.argv) != 5:
+        print('Python 2015')
+        print('Uso: python3 bm25.py argv[1]')
+        print('argv[1]: arquivo da base de dados')
+        print('argv[2]: nome do arquivo onde serão salvos os dados')
+        print('argv[3]: nome do diretório onde serão salvos os arquivos de resultados')
+        print('argv[4]: nome do arquivo de range')
+    #    print('argv[x]:')
+        sys.exit(-1)
+    else:
+        dbname = sys.argv[1]
+        fdataname = sys.argv[2]
+        dirresultname = sys.argv[3]
+        rangefname = sys.argv[4]
+        try:
+            with open(rangefname, 'r') as rangefile:
+                rangestring=rangefile.read()
+        except Exception as error:
+            raise error
+
+        rangedict = json.loads(rangestring)
+        qiini = rangedict['qiini']
+        fiini = rangedict['fiini']
+        qiend = rangedict['qiend']
+        fiend = rangedict['fiend']
+
+        global EXECSTHRESHOLD
+        try:
+            EXECSTHRESHOLD = rangedict['bkplen']
+        except KeyError:
+            print('Using bkplen default =', EXECSTHRESHOLD)
+
+        global NOSTOPWORDS
+        try:
+            NOSTOPWORDS = rangedict['nostopwords']
+        except KeyError:
+            print('Using nostopwords default =', NOSTOPWORDS)
+
+    #Filters
+    global filters
+    filters = {
+        1 : {'name': 'default(or)', 'query': True, 'posproc': False},
+        2 :     {'name': 'and', 'query': True, 'posproc': True},
+        3 :  {'name': 'filter', 'query': False, 'posproc': True}
+    }
 
     if os.path.exists(fdataname):
         print("Carregando dados do arquivo ", fdataname, '...',sep = '')
