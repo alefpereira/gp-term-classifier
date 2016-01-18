@@ -269,19 +269,24 @@ def find_features(query, index, aolstats):
     term_list = query.split()
     bigrams = find_ngrams(term_list, 2)
     features = list()
+    stats = aolstats['stats']
+    termstats = aolstats['termstats']
+
     for pos, term in enumerate(term_list):
-            term_features = list()
-            term_features.append(relative_pos(term, term_list))
-            term_bigrams = find_rest(pos, len(term_list), 2, bigrams)
-            for term_bigram in term_bigrams:
-                term_features.append(relative_pos(term, term_bigram,))
+        term_features = list()
+        term_features.append(relative_pos(term, term_list))
+        term_bigrams = find_rest(pos, len(term_list), 2, bigrams)
+        for term_bigram in term_bigrams:
+            term_features.append(relative_pos(term, term_bigram,))
 
-            stats = aolstats['stats']
-            termstats = aolstats['termstats']
+        term_stat = termstats.get(term)
+        if term_stat:
             for stat in stats:
-                term_features.append(termstats[term][stat[0]])
+                term_features.append(term_stat[stat[0]])
+        else:
+            term_features += [0] * len(stats)
 
-            features.append((term, term_features,))
+        features.append((term, term_features,))
     return features
 
 def relative_pos(term, term_list):
