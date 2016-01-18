@@ -19,7 +19,7 @@ import json
 
 from multiprocessing import Pool
 
-from stopwords import porter2stemedstopwords as stopwords
+from stopwords import porterstemedstopwords as stopwords
 
 DEBUG = False
 

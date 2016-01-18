@@ -22,7 +22,18 @@ porterssw = porterstemedstopwords
 
 porter2stemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our',
     'ourselv', 'you', 'your', 'your', 'yourself', 'yourselv', 'he', 'him',
-    'his', 'himself', 'she', 'her', 'her', 'herself', 'it', 'it', 'itself', 'they', 'them', 'their', 'their', 'themselv', 'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'be', 'have', 'has', 'had', 'have', 'do', 'doe', 'did', 'do', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'becaus', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'dure', 'befor', 'after', 'abov', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'onc', 'here', 'there', 'when', 'where', 'whi', 'how', 'all', 'ani', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'onli', 'own', 'same', 'so', 'than', 'too', 'veri', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now']
+    'his', 'himself', 'she', 'her', 'her', 'herself', 'it', 'it', 'itself',
+    'they', 'them', 'their', 'their', 'themselv', 'what', 'which', 'who',
+    'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were',
+    'be', 'been', 'be', 'have', 'has', 'had', 'have', 'do', 'doe', 'did', 'do',
+    'a', 'an', 'the', 'and', 'but', 'if', 'or', 'becaus', 'as', 'until',
+    'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between',
+    'into', 'through', 'dure', 'befor', 'after', 'abov', 'below', 'to', 'from',
+    'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further',
+    'then', 'onc', 'here', 'there', 'when', 'where', 'whi', 'how', 'all', 'ani',
+    'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor',
+    'not', 'onli', 'own', 'same', 'so', 'than', 'too', 'veri', 's', 't', 'can',
+    'will', 'just', 'don', 'should', 'now']
 
 #alias
 porter2ssw = porter2stemedstopwords

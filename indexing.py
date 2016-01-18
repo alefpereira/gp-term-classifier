@@ -3,7 +3,7 @@
 import sys
 import math
 
-import porter2
+import porter
 import func
 
 class Index(dict):
