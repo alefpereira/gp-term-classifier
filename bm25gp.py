@@ -6,7 +6,7 @@ import os
 import bm25
 import lepref_util
 
-from stopwords import porter2stemedstopwords as stopwords
+from stopwords import porterstemedstopwords as stopwords
 
 import aol_parser
 
