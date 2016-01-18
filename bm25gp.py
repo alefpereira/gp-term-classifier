@@ -10,7 +10,7 @@ from stopwords import porter2stemedstopwords as stopwords
 
 import aol_parser
 
-from estatisticas import load_results
+from bm25 import load_results
 
 from deap import algorithms
 from deap import base
