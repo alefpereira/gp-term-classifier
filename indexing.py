@@ -3,7 +3,7 @@
 import sys
 import math
 
-import porter
+import porter2
 import func
 
 class Index(dict):
@@ -93,7 +93,7 @@ class Index(dict):
 
         acc = list()
         for term in query_termlist:
-            term_processed = porter.stem(term)
+            term_processed = porter2.stem(term)
             acc.append((term, self[term].doclist))
 
     def partial_score(self, term, doc):

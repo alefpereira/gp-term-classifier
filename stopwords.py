@@ -2,7 +2,7 @@
 # stopwords removedo from http://www.nltk.org
 # seem 07 jan 2016
 
-stemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our', 'ourselv',
+porterstemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our', 'ourselv',
     'you', 'your', 'your', 'yourself', 'yourselv', 'he', 'him', 'hi', 'himself',
     'she', 'her', 'her', 'herself', 'it', 'it', 'itself', 'thei', 'them',
     'their', 'their', 'themselv', 'what', 'which', 'who', 'whom', 'thi', 'that',
@@ -18,8 +18,14 @@ stemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our', 'ourselv',
     'just', 'don', 'should', 'now']
 
 #alias
-ssw = stemedstopwords
+porterssw = stemedstopwords
 
+porter2stemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our',
+    'ourselv', 'you', 'your', 'your', 'yourself', 'yourselv', 'he', 'him',
+    'his', 'himself', 'she', 'her', 'her', 'herself', 'it', 'it', 'itself', 'they', 'them', 'their', 'their', 'themselv', 'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'be', 'have', 'has', 'had', 'have', 'do', 'doe', 'did', 'do', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'becaus', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'dure', 'befor', 'after', 'abov', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'onc', 'here', 'there', 'when', 'where', 'whi', 'how', 'all', 'ani', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'onli', 'own', 'same', 'so', 'than', 'too', 'veri', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now']
+
+#alias
+porter2ssw = porter2stemedstopwords
 stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you',
     'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself',
     'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them',
