@@ -18,7 +18,7 @@ porterstemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our', 'ourselv
     'just', 'don', 'should', 'now']
 
 #alias
-porterssw = stemedstopwords
+porterssw = porterstemedstopwords
 
 porter2stemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our',
     'ourselv', 'you', 'your', 'your', 'yourself', 'yourselv', 'he', 'him',
@@ -26,6 +26,7 @@ porter2stemedstopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'our',
 
 #alias
 porter2ssw = porter2stemedstopwords
+
 stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you',
     'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself',
     'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them',
