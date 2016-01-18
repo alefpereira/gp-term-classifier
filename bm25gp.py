@@ -76,6 +76,10 @@ def main():
     hoflen = int(exec_config['hoflen'])
     #end load config file
 
+    #Start up print
+    print('Bm25GP - Alef Pereira', '\nRunning Python',sys.version)
+    logger(resultdir, 'Bm25GP - Alef Pereira', '\nRunning Python',sys.version)
+
     #Set pset and toolbox
     pset = create_primaryset()
     toolbox = create_toolbox(pset)
@@ -83,47 +87,87 @@ def main():
     #set_evaluate(toolbox, evalQuery, queries, index, aolstats, results)
 
     #results
+    print('Reading results from "' + ffiltersresults + '"...')
+    logger(resultdir, 'Reading results from "' + ffiltersresults + '"...')
     filtersresults_data = load_results(ffiltersresults)['results']
 
+    print('Processing results...')
+    logger(resultdir, 'Processing results...')
     results = create_result_dict(filtersresults_data)
 
+    print('Results ready!')
+    logger(resultdir, 'Results ready!')
+
     #Get train data
+    print('Reading train queries from "' + ftrainame + '"...')
+    logger(resultdir, 'Reading train queries from "' + ftrainame + '"...')
     queries = lepref_util.carregar_queries(ftrainame)[0]
     #lepref_util.configurar_idcg_medio(queries, topN = MAXEVAL)
 
+    print(len(queries), 'queries read!')
+    logger(resultdir, len(queries), 'queries read!')
+
     #Create Bm25 Index
+    print('Creating index from queries...')
+    logger(resultdir, 'Creating index from queries...')
     index = bm25.Bm25Index()
     index.generate_from_queries(queries)
 
+    print('Index created with', len(index), 'terms!')
+    logger(resultdir, 'Index created with', len(index), 'terms!')
+
     #Set evaluate function and data
+    print('Reading AOL output file from "' + foutputname + '"...')
+    logger(resultdir, 'Reading AOL output file from "' + foutputname + '"...')
     aoldata, featurelist = aol_parser.output_read(foutputname)
+
+    print('Precomputing AOL statistics...')
+    logger(resultdir, 'Precomputing AOL statistics...')
     aolstats = process_aol_stats(aoldata)
+
+    print(len(aolstats['stats']), 'AOL statistics created!')
+    logger(resultdir, len(aolstats['stats']), 'AOL statistics created!')
+
+    print('Precomputing AOL statistics...')
+    logger(resultdir, 'Precomputing AOL statistics...')
+
 
     set_evaluate(toolbox, evalQuery, queries, index, aolstats, results)
 
-    print(len(queries), 'consultas lidas!')
-    if LOG:
-        log_sfile = open(resultdir + os.sep + "logfile.log", "a+")
-        print(len(queries), 'consultas lidas!', file = log_sfile)
-        log_sfile.close()
-
+    print('All data is ready!')
+    logger(resultdir, 'All data is ready!')
 
     if os.path.exists(resultdir + os.sep + 'checkpoint.data'):
         #Load Checkpoint
+        print('Checkpoint found! Loading...')
+        logger(resultdir, 'Checkpoint found! Loading...')
+
         pop, igen, stats, hof, logbook, randomstate = load_checkpoint(resultdir)
         random.setstate(randomstate)
-
-        #Configura toolbox
 
     else:
         igen = 0
         logbook = None
         pop, hof, stats = prepare_gp(toolbox, randomseed, popsize, hoflen)
 
+    starttime = datetime.now()
+    if igen == 0:
+        print('Starting new evolution at ', starttime,'!', sep = '')
+        logger(resultdir, 'Starting new evolution at ', starttime,'!', sep = '')
+    else:
+        print('Resuming evolution in generation ', igen, ' at ', starttime ,'!', sep = '')
+        logger(resultdir, 'Resuming evolution in generation ', igen, ' at ', starttime ,'!', sep = '')
+
 #    eaCheckpoint(pop, cxprob, MutProb, igen, generations, stats, halloffame=hof,
 #                         logbook=logbook, cpfile_location = dirresult)
     eaCheckpoint(pop, toolbox, cxprob, mutprob, igen, generations, resultdir, stats, halloffame=hof,
              logbook=logbook)
+
+    endtime = datetime.now()
+    print('Evolution training finishes at ', endtime,'!', sep = '')
+    print('Total time: ', endtime - starttime)
+    logger(resultdir, 'Evolution training finishes at ', endtime,'!', sep = '')
+    logger(resultdir, 'Total time: ', endtime - starttime)
 
 def create_primaryset():
     ##Set Individual
@@ -358,7 +402,7 @@ def create_result_dict(filtersresults):
     return results_data
 
 #Evolution
-def eaCheckpoint(population, toolbox, cxpb, mutpb, igen, ngen, dirresult, stats=None, halloffame=None,
+def eaCheckpoint(population, toolbox, cxpb, mutpb, igen, ngen, resultdir, stats=None, halloffame=None,
              logbook=None, verbose=__debug__):
 
     global tobedone
@@ -384,12 +428,9 @@ def eaCheckpoint(population, toolbox, cxpb, mutpb, igen, ngen, dirresult, stats=
         if verbose:
             print(logbook.stream)
 
-        if LOG:
-            log_sfile = open(dirresult + os.sep + "logfile.log", "a+")
-            print(logbook.__str__(len(logbook)-1), file = log_sfile)
-            log_sfile.close()
+        logger(resultdir, logbook.__str__(len(logbook)-1))
 
-        checkpoint(population, 0, stats, halloffame, logbook, cpfile_location = dirresult)
+        checkpoint(population, 0, stats, halloffame, logbook, cpfile_location = resultdir)
 
     # Begin the generational process
     for gen in range(igen, ngen+1):
@@ -420,12 +461,9 @@ def eaCheckpoint(population, toolbox, cxpb, mutpb, igen, ngen, dirresult, stats=
         if verbose:
             print(logbook.stream)
 
-        if LOG:
-            log_sfile = open(dirresult + os.sep + "logfile.log", "a+")
-            print(logbook.__str__(len(logbook)-1), file = log_sfile)
-            log_sfile.close()
+        logger(resultdir, logbook.__str__(len(logbook)-1))
 
-        checkpoint(population, gen, stats, halloffame, logbook, cpfile_location = dirresult)
+        checkpoint(population, gen, stats, halloffame, logbook, cpfile_location = resultdir)
 
     return population, logbook
 
@@ -474,6 +512,13 @@ def tempo(*args):
 #lambda ind: ind.fitness.values
 def fitnessvalues(ind):
     return ind.fitness.values
+
+def logger(resultdir, *args, **kargs):
+    if LOG:
+        log_sfile = open(resultdir + os.sep + "logfile.log", "a+")
+        kargs['file'] = log_sfile
+        print(*args, **kargs)
+        log_sfile.close()
 
 if __name__ == '__main__':
     sys.exit(main())
