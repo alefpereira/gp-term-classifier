@@ -81,7 +81,7 @@ def main():
     logger(resultdir, 'Bm25GP - Alef Pereira', '\nRunning Python',sys.version)
 
     #Set pset and toolbox
-    pset = create_primaryset()
+    pset = create_primitiveset()
     toolbox = create_toolbox(pset)
     set_gpoperator(toolbox, pset)
     #set_evaluate(toolbox, evalQuery, queries, index, aolstats, results)
@@ -169,7 +169,7 @@ def main():
     logger(resultdir, 'Evolution training finishes at ', endtime,'!', sep = '')
     logger(resultdir, 'Total time: ', endtime - starttime)
 
-def create_primaryset():
+def create_primitiveset():
     ##Set Individual
     pset = gp.PrimitiveSet("MAIN", 9, "FEAT")
     pset.renameArguments(FEAT0 = "posQuery",
