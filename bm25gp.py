@@ -2,6 +2,7 @@
 #!/usr/bin/env python3
 import sys
 import os
+import pwd
 
 import bm25
 import lepref_util
@@ -77,8 +78,12 @@ def main():
     #end load config file
 
     #Start up print
-    print('Bm25GP - Alef Pereira', '\nRunning Python',sys.version)
-    logger(resultdir, 'Bm25GP - Alef Pereira', '\nRunning Python',sys.version)
+    print('Bm25GP [%s] - %s [%s]' %
+      (fexecname, pwd.getpwuid(os.getuid())[4],os.getlogin()),
+      '\nRunning on Python',sys.version)
+    logger(resultdir, 'Bm25GP [%s] - %s [%s]' %
+      (fexecname, pwd.getpwuid(os.getuid())[4],os.getlogin()),
+      '\nRunning on Python',sys.version)
 
     #Set pset and toolbox
     pset = create_primitiveset()
@@ -128,10 +133,6 @@ def main():
     print(len(aolstats['stats']), 'AOL statistics created!')
     logger(resultdir, len(aolstats['stats']), 'AOL statistics created!')
 
-    print('Precomputing AOL statistics...')
-    logger(resultdir, 'Precomputing AOL statistics...')
-
-
     set_evaluate(toolbox, evalQuery, queries, index, aolstats, results)
 
     print('All data is ready!')
@@ -168,6 +169,47 @@ def main():
     print('Total time: ', endtime - starttime)
     logger(resultdir, 'Evolution training finishes at ', endtime,'!', sep = '')
     logger(resultdir, 'Total time: ', endtime - starttime)
+
+    #validating
+    #Get validation data
+    print('Prepair for validation and test!')
+    logger(resultdir, 'Prepair for validation and test!')
+    queries = lepref_util.carregar_queries(fvaliname)[0]
+    #Set validation data to toolbox.evaluate
+    set_evaluate(toolbox, evalQuery, queries, index, aolstats, results)
+
+    #run validation
+    global tobedone
+    tobedone = len(hof)
+    valiresults = [evaluation[0] for evaluation in map(toolbox.evaluate, hof)]
+
+    #output validation
+    print(':validation:')
+    logger(resultdir, ':validation:')
+    for vali in valiresults:
+        print(vali)
+        logger(resultdir, vali)
+    bestvali = max(zip(hof, valiresults), key = lambda z : z[1])
+    print(':bestvalidation:')
+    print(bestvali[1])
+    logger(resultdir, ':bestvalidation:')
+    logger(resultdir, bestvali[1])
+
+    #Testing
+    #Get test data
+    queries = lepref_util.carregar_queries(ftestname)[0]
+    #Set test data to toolbox.evaluate
+    set_evaluate(toolbox, evalQuery, queries, index, aolstats, results)
+
+    #run test
+    tobedone = 1
+    resulttest = toolbox.evaluate(bestvali[0])
+
+    #output test
+    print(':test:')
+    print(resulttest[0])
+    logger(resultdir, ':test:')
+    logger(resultdir, resulttest[0])
 
 def create_primitiveset():
     ##Set Individual
